@@ -28,7 +28,10 @@ App = function () {
     }
 }
 
-test_scene_setup_01 = function(scene){
+test_scene_setup_01 = function (scene) {
+
+    scene.activeCamera.initMouseSpinControl();
+
     var cube = new ZUTIL.SpinningCube(scene);
     cube.position.z = 3
     var cube2 = new ZUTIL.SpinningCube(scene);
@@ -42,14 +45,11 @@ test_scene_setup_01 = function(scene){
     loader.setTexturePath("");
     loader.load("./assets/test_scene_01.json", function (obj) {
 
-        //obj.children[0].material = obj.children[1].material;
-        //obj.children[0].material.emissiveIntensity = 1;
-        //obj.children[0].material.lights = false;
+        //manually changing to the basic material type to omit light contribution
+        obj.children[0].material = new THREE.MeshBasicMaterial({map:      obj.children[0].material.map,
+                                                                lightMap: obj.children[0].material.lightMap});
 
         scene.add(obj);
     });
-    
-    var light = new THREE.AmbientLight(0xffffff);
-    scene.add(light);
 }
 
