@@ -34,9 +34,9 @@ test_scene_setup_01 = function(scene){
     var cube2 = new ZUTIL.SpinningCube(scene);
     cube2.position.x = 3;
 
-    var light = new THREE.PointLight(0xff0000, 1, 100);
+    var light = new THREE.HemisphereLight(0xffffff, 0x9b928a, 1);
     light.position.set(0, 2, 0);
-    //scene.add(light);
+    scene.add(light);
     
     var loader = new THREE.ObjectLoader();
     loader.setTexturePath("");
@@ -44,7 +44,7 @@ test_scene_setup_01 = function(scene){
 
         //obj.children[0].material = obj.children[1].material;
         //obj.children[0].material.emissiveIntensity = 1;
-        obj.children[0].material.lights = false;
+        //obj.children[0].material.lights = false;
 
         scene.add(obj);
     });
