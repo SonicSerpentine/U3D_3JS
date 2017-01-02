@@ -1,0 +1,36 @@
+﻿{
+  "materials": [
+    {
+      "name": "metal_01",
+      "color": "metal_01_basecolor.png",
+      "metallic": "metal_01_metallic.png",
+      "roughness": "metal_01_roughness.png",
+      "normal": "metal_01_normal.png"
+    },
+    {
+      "name": "concrete_01",
+      "color": "concrete_02.jpg",
+      "metallic": "concrete_01_metallic.png",
+      "roughness": "concrete_01_roughness.png",
+      "normal": "concrete_01_normal.png"
+    },
+    {
+      "name": "metal_02",
+      "color": "metal_02_basecolor.png",
+      "metallic": "metal_02_metallic.png",
+      "roughness": "metal_02_roughness.png",
+      "normal": "metal_02_normal.png"
+    }
+  ],
+
+  "lightMap": "test_scene_01_cycles.png",
+
+  "reflectionMap": [
+    "Bridge2/posx.jpg",
+    "Bridge2/negx.jpg",
+    "Bridge2/posy.jpg",
+    "Bridge2/negy.jpg",
+    "Bridge2/posz.jpg",
+    "Bridge2/negz.jpg"
+  ]
+}

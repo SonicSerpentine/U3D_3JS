@@ -7,9 +7,9 @@ ZUTIL.Scene = class extends THREE.Scene {
         super();
         this.update_arr = [];
         this.activeCamera = new ZUTIL.Camera(75, window.innerWidth / window.innerHeight, 0.1, 1000, this);
-        this.activeCamera.position.y = 8;
-        this.activeCamera.position.x = -15;
-        this.activeCamera.position.z = -15;
+        this.activeCamera.position.y = 3;
+        this.activeCamera.position.x = -3;
+        this.activeCamera.position.z = -3;
         this.activeCamera.lookAt(this.activeCamera.pivot.position);
     }
 
@@ -92,17 +92,11 @@ ZUTIL.Camera = class extends THREE.PerspectiveCamera {
     }
 }
 
-ZUTIL.Vec3 = class extends THREE.Vector3{
-    constructor(x, y, z){
-        super(x, y, z);
-    }
-};
-
 ZUTIL.SpinningCube = class extends THREE.Mesh {
     constructor(scene) {
-        ///<param name="scene" type="ZUTIL.Scene">scene the cube is attaching to</param>
+        ///<param name="scene" type="ZUTIL.Scene">scene the object will be added to</param>
         var boxGeo = new THREE.BoxGeometry(1,1,1);
-        var boxMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        var boxMat = new THREE.MeshPhongMaterial({ color: 0x38e04b });
         super(boxGeo, boxMat);
         var _this = this;
         this.scene = scene;
@@ -121,5 +115,105 @@ ZUTIL.SpinningCube = class extends THREE.Mesh {
                 this.scene.update_arr.splice(i, 1);
             }
         }
+    }
+}
+
+ZUTIL.PBRObjectLoader = class extends THREE.ObjectLoader {
+    constructor(manager){
+        super(manager);
+    }
+
+    load(pathName, refTex, scene, onLoaded){
+        ///<param name="pathName" type="string">path including the .json filename (omit the file extension)</param>
+        ///<param name="refTex" type="THREE.CubeTexture">the reflection cube texture this object will use</param>
+        ///<param name="scene" type="ZUTIL.Scene">scene the object will be added to</param>
+        ///<param name="onLoaded" type="ZUTIL.Scene">function to call when object is loaded</param>
+        var object = super.load(pathName + ".json", function (obj) {
+            obj.name = "Container_02";
+            scene.add(obj);
+
+
+            var tLoader = new THREE.TextureLoader()
+
+            obj.children[0].material = new THREE.MeshPhysicalMaterial({
+                map: tLoader.load(pathName + "_basecolor.png"),
+                normalMap: tLoader.load(pathName + "_normal.png"),
+                normalScale: new THREE.Vector2(1,1),
+                metalness:1,
+                metalnessMap: tLoader.load(pathName + "_metallic.png"),
+                roughness:2.3,
+                roughnessMap: tLoader.load(pathName + "_roughness.png"),
+                envMapIntensity:2,
+                envMap: refTex
+            });
+            onLoaded(obj);
+        });
+        return object;
+    }
+}
+
+ZUTIL.PBRLoader = class{
+    constructor() {
+        ///<summary> creates an array of PBR materials according to a .json manifest</summary>
+        var _this = this;
+        this.material_arr = [];
+        this.callback = {}
+    }
+
+    load(path, manifestName, callback) {
+        ///<param name="path" type="string">path to the manifest and corresponding textures</param>
+        ///<param name="manifestName" type="string">filename of the manifest</param>
+        var _this = this;
+        this.callback = callback;
+        var raw = new XMLHttpRequest();
+        raw.overrideMimeType("application/json");
+        raw.open("GET", path + manifestName, true);
+        raw.onreadystatechange = function () {
+            if (raw.readyState == XMLHttpRequest.DONE && raw.status == 200) {
+                _this.assemble_materials(path, JSON.parse(raw.responseText));
+            }
+        }
+        raw.send(null);
+    }
+
+    assemble_materials(path, manifest) {
+        var _this = this;
+        var materials = {};
+        var tLoader = new THREE.TextureLoader();
+
+        var lightMapTex = tLoader.load(path + manifest.lightMap);
+
+        manifest.materials.forEach(function (mat) {
+
+            var color =     tLoader.load(path + mat.color);
+            var normal =    tLoader.load(path + mat.normal);
+            var metallic =  tLoader.load(path + mat.metallic);
+            var roughness = tLoader.load(path + mat.roughness);
+
+            normal.encoding = THREE.LinearEncoding;
+
+            color.wrapS = color.wrapT =
+            normal.wrapS = normal.wrapT =
+            metallic.wrapS = metallic.wrapT =
+            roughness.wrapS = roughness.wrapT = THREE.RepeatWrapping;
+
+            var material = new THREE.MeshPhysicalMaterial({
+                name:              mat.name,
+                map:               color,
+                normalMap:         normal,
+                metalness:         1,
+                metalnessMap:      metallic,
+                roughness:         2.3,
+                roughnessMap:      roughness,
+                lightMap:          lightMapTex,
+                lightMapIntensity: 1,
+                envMapIntensity:   2,
+                //envMap: refTex
+            });
+
+            materials[material.name] = material;
+        });
+
+        _this.callback(materials);
     }
 }
