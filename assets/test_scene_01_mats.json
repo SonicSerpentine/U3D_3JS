@@ -1,36 +1,45 @@
 ﻿{
   "materials": [
     {
+      "object": "Floor",
       "name": "metal_01",
-      "color": "metal_01_basecolor.png",
-      "metallic": "metal_01_metallic.png",
-      "roughness": "metal_01_roughness.png",
-      "normal": "metal_01_normal.png"
+      "color": "./assets/metal_01_basecolor.png",
+      "metallic": "./assets/metal_01_metallic.png",
+      "roughness": "./assets/metal_01_roughness.png",
+      "normal": "./assets/metal_01_normal.png",
+      "castShadow": true,
+      "receiveShadow":  true
     },
     {
+      "object": "Concrete",
       "name": "concrete_01",
-      "color": "concrete_02.jpg",
-      "metallic": "concrete_01_metallic.png",
-      "roughness": "concrete_01_roughness.png",
-      "normal": "concrete_01_normal.png"
+      "color": "./assets/concrete_02.jpg",
+      "metallic": "./assets/metal_02_metallic.png",
+      "roughness": "./assets/metal_02_roughness.png",
+      "normal": "./assets/metal_02_normal.png",
+      "castShadow": true,
+      "receiveShadow": true
     },
     {
+      "object": "Metal",
       "name": "metal_02",
-      "color": "metal_02_basecolor.png",
-      "metallic": "metal_02_metallic.png",
-      "roughness": "metal_02_roughness.png",
-      "normal": "metal_02_normal.png"
+      "color": "./assets/metal_02_basecolor.png",
+      "metallic": "./assets/metal_02_metallic.png",
+      "roughness": "./assets/metal_02_roughness.png",
+      "normal": "./assets/metal_02_normal.png",
+      "castShadow": true,
+      "receiveShadow": true
     }
   ],
 
-  "lightMap": "test_scene_01_cycles.png",
+  "lightMap": "./assets/test_scene_01_lightmap.png",
 
-  "reflectionMap": [
-    "Bridge2/posx.jpg",
-    "Bridge2/negx.jpg",
-    "Bridge2/posy.jpg",
-    "Bridge2/negy.jpg",
-    "Bridge2/posz.jpg",
-    "Bridge2/negz.jpg"
+  "envMap": [
+    "./assets/Bridge2/posx.jpg",
+    "./assets/Bridge2/negx.jpg",
+    "./assets/Bridge2/posy.jpg",
+    "./assets/Bridge2/negy.jpg",
+    "./assets/Bridge2/posz.jpg",
+    "./assets/Bridge2/negz.jpg"
   ]
 }

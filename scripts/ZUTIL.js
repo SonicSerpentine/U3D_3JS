@@ -152,43 +152,54 @@ ZUTIL.PBRObjectLoader = class extends THREE.ObjectLoader {
     }
 }
 
-ZUTIL.PBRLoader = class{
+ZUTIL.PBRLoader = class extends THREE.ObjectLoader{
     constructor() {
-        ///<summary> creates an array of PBR materials according to a .json manifest</summary>
+        ///<summary>creates an object and applies PBR materials according to a matching _mats.json</summary>
+        super();
         var _this = this;
         this.material_arr = [];
         this.callback = {}
     }
 
-    load(path, manifestName, callback) {
-        ///<param name="path" type="string">path to the manifest and corresponding textures</param>
-        ///<param name="manifestName" type="string">filename of the manifest</param>
+    load(objPathName, callback) {
+        ///<param name="objPathName" type="string">object path and name</param>
+        ///<param name="callback" type="string">function that is passed the returned object</param>
         var _this = this;
-        this.callback = callback;
-        var raw = new XMLHttpRequest();
-        raw.overrideMimeType("application/json");
-        raw.open("GET", path + manifestName, true);
-        raw.onreadystatechange = function () {
-            if (raw.readyState == XMLHttpRequest.DONE && raw.status == 200) {
-                _this.assemble_materials(path, JSON.parse(raw.responseText));
+        super.load(objPathName + ".json", function (obj) { 
+            callback(obj);
+            
+            var raw = new XMLHttpRequest();
+            raw.overrideMimeType("application/json");
+            raw.open("GET", objPathName + "_mats.json", true);
+            raw.onreadystatechange = function () {
+                if (raw.readyState == XMLHttpRequest.DONE && raw.status == 200) {
+                    _this.assemble_materials(obj, JSON.parse(raw.responseText));
+                }
             }
-        }
-        raw.send(null);
+            raw.send(null);
+        });
     }
 
-    assemble_materials(path, manifest) {
+    assemble_materials(object, manifest) {
         var _this = this;
-        var materials = {};
+        var materials = [];
         var tLoader = new THREE.TextureLoader();
 
-        var lightMapTex = tLoader.load(path + manifest.lightMap);
+        //TODO: load reflection cube maps
+        //TODO: pass in the corresponding scene object instead of manifest pathname
+        //TODO: assign object receiveShadow/castShadow properties from here
+
+        var lightMapTex = tLoader.load(manifest.lightMap);
+
+        var envLoader = new THREE.CubeTextureLoader();
+        var envMap = envLoader.load(manifest.envMap);
 
         manifest.materials.forEach(function (mat) {
 
-            var color =     tLoader.load(path + mat.color);
-            var normal =    tLoader.load(path + mat.normal);
-            var metallic =  tLoader.load(path + mat.metallic);
-            var roughness = tLoader.load(path + mat.roughness);
+            var color =     tLoader.load(mat.color);
+            var normal =    tLoader.load(mat.normal);
+            var metallic =  tLoader.load(mat.metallic);
+            var roughness = tLoader.load(mat.roughness);
 
             normal.encoding = THREE.LinearEncoding;
 
@@ -208,12 +219,26 @@ ZUTIL.PBRLoader = class{
                 lightMap:          lightMapTex,
                 lightMapIntensity: 1,
                 envMapIntensity:   2,
-                //envMap: refTex
+                envMap: envMap
             });
 
-            materials[material.name] = material;
+            material.object = mat.object;
+            material.castShadow = mat.castShadow;
+            material.receiveShadow = mat.receiveShadow;
+
+            materials.push(material);
+
+
         });
 
-        _this.callback(materials);
+        object.children.forEach(function (child) {
+            materials.forEach(function (mat) {
+                if (child.name == mat.object) {
+                    child.material = mat;
+                    child.castShadow = mat.castShadow;
+                    child.receiveShadow = mat.receiveShadow;
+                }
+            });
+        });
     }
 }

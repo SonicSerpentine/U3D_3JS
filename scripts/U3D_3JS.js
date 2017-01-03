@@ -44,8 +44,8 @@ test_scene_setup_01 = function (scene) {
     scene.add(hemilight);
     var light = new THREE.DirectionalLight(0xfffbf2, 0.75);
     light.castShadow = true;
-    light.shadowMapWidth = 1024;
-    light.shadowMapHeight = 1024;
+    light.shadowMapWidth = 2048;
+    light.shadowMapHeight = 2048;
     light.position.set(-30, 30, 30);
     light.target.position.set(0, 0, 0);
     scene.add(light);
@@ -68,39 +68,8 @@ test_scene_setup_01 = function (scene) {
         obj.children[0].receiveShadow = true;
     });
 
-
-
-    var loader = new THREE.ObjectLoader();
-    loader.load("./assets/test_scene_01.json", function (obj) {
-
-        var pbrMat_arr = new ZUTIL.PBRLoader();
-        pbrMat_arr.load("./assets/", "test_scene_01_mats.json", function (mats) {
-
-            obj.children.forEach(function (child) {
-                if (child.name == "Concrete") {
-                    child.material = mats["concrete_01"];
-                    child.receiveShadow = true;
-                    child.castShadow = true;
-                }
-
-                if (child.name == "Metal") {
-                    child.material = mats["metal_02"];
-                    child.material.envMap = reflectionCubeTex;
-                    child.material.envMapIntensity = 2;
-                    child.receiveShadow = true;
-                    child.castShadow = true;
-                }
-
-                if (child.name == "Floor"){
-                    child.material = mats["metal_01"];
-                    child.material.envMap = reflectionCubeTex;
-                    child.material.envMapIntensity = 2;
-                    child.receiveShadow = true;
-                    child.castShadow = true;
-                }
-            });
-        });
-        
+    var pbrMat_arr = new ZUTIL.PBRLoader();
+    pbrMat_arr.load("./assets/test_scene_01", function (obj) {
         scene.add(obj);
     });
 }
