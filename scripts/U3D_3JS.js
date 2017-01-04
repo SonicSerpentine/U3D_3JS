@@ -32,7 +32,8 @@ App = function () {
 
 test_scene_setup_01 = function (scene) {
 
-    scene.activeCamera.initMouseSpinControl();
+    scene.activeCamera = new ZUTIL.Camera(75, window.innerWidth / window.innerHeight, 0.1, 1000, scene);
+    scene.activeCamera.initPanSpinControl();
 
     var cube = new ZUTIL.SpinningCube(scene);
     cube.position.set(2, 0.5, 11);
@@ -42,6 +43,7 @@ test_scene_setup_01 = function (scene) {
     var hemilight = new THREE.HemisphereLight(0xffffff, 0x9b928a, 0.25);
     hemilight.position.set(0, 2, 0);
     scene.add(hemilight);
+
     var light = new THREE.DirectionalLight(0xfffbf2, 0.75);
     light.castShadow = true;
     light.shadowMapWidth = 2048;

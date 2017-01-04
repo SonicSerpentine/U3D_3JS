@@ -6,16 +6,20 @@ ZUTIL.Scene = class extends THREE.Scene {
     constructor() {
         super();
         this.update_arr = [];
-        this.activeCamera = new ZUTIL.Camera(75, window.innerWidth / window.innerHeight, 0.1, 1000, this);
-        this.activeCamera.position.y = 3;
-        this.activeCamera.position.x = -3;
-        this.activeCamera.position.z = -3;
-        this.activeCamera.lookAt(this.activeCamera.pivot.position);
+        this.update_arr.remove = this._remove_callback;
     }
 
     update() {
         ///<summary> runs the update callbacks of ZUTIL objects attached to this scene</summary> 
         this.update_arr.forEach(function (e) { e(); });
+    }
+
+    _remove_callback(callback) {
+        var _this = this;
+        for (var i = 0; i < _this.length; i++){
+            if (_this[i] == callback)
+                _this.splice(i, 1);
+        }
     }
 }
 
@@ -27,68 +31,105 @@ ZUTIL.Camera = class extends THREE.PerspectiveCamera {
 
         this.pivot = new THREE.Object3D();
         this.pivot.add(this);
+        this.axisHelper = new THREE.AxisHelper(0.5);
+
+        this.position.set(-3, 3, -3);
+        this.lookAt(this.pivot.position);
+
+        this.scene.add(this.axisHelper);
         this.scene.add(this.pivot);
 
         this.mouseDown = false;
-        this.mouseDelta = new THREE.Vector2(0,0);
+        this.ctrlDown = false;
+        this.mEventFunc = function (e) { _this.mEvent(e) };
+
+        this.mouseDelta = new THREE.Vector2(0, 0);
         this.mousePos = new THREE.Vector2(0,0);
         this.mouseLastPos = new THREE.Vector2(0, 0);
-
-        this.mouseDownFunc = function () { _this.mDown() };
-        this.mouseUpFunc = function () { _this.mUp() };
-        this.mouseMoveFunc = function (e) { _this.mMove(e) };
     }
 
     initMouseSpinControl() {
         var _this = this;
         
-        window.addEventListener("mousedown", this.mouseDownFunc, false);
-        window.addEventListener("mouseup", this.mouseUpFunc, false);
-        window.addEventListener("mousemove", this.mouseMoveFunc, false);
-        this.callback = function () { _this.SpinControlThink() }
+        window.addEventListener("mousedown", this.mEventFunc, false);
+        window.addEventListener("mouseup",   this.mEventFunc, false);
+        window.addEventListener("mousemove", this.mEventFunc, false);
+        this.callback = function () { _this.mDeltaUpdate(); _this.SpinControlThink(); }
         this.scene.update_arr.push(this.callback);
     }
 
-    killMouseSpinControl() {
-        window.removeEventListener("mousedown", this.mouseDownFunc);
-        window.removeEventListener("mouseup", this.mouseUpFunc);
-        window.removeEventListener("mousemove", this.mouseMoveFunc);
+    initPanSpinControl() {
+        var _this = this;
+
+        window.addEventListener("mousedown", this.mEventFunc, false);
+        window.addEventListener("mouseup", this.mEventFunc, false);
+        window.addEventListener("mousemove", this.mEventFunc, false);
+        this.callback = function () { _this.mDeltaUpdate(); _this.PanSpinControlThink(); }
+        this.scene.update_arr.push(this.callback);
     }
 
-    mDown() {
-        this.mouseDown = true;
+    kill_controls() {
+        window.removeEventListener("mousedown", this.mEventFunc);
+        window.removeEventListener("mouseup", this.mEventFunc);
+        window.removeEventListener("mousemove", this.mEventFunc);
+        this.scene.update_arr.remove(this.callback);
     }
 
-    mUp() {
-        this.mouseDown = false;
-    }
-    mMove(e) {
-        this.mousePos.set(e.clientX, e.clientY);
+    mEvent(event) {
+        if (event.type == "mousedown") {
+            this.mouseDown = true;
+            this.ctrlDown = event.ctrlKey;
+        }
+
+        if (event.type == "mouseup") {
+            this.mouseDown = false;
+            this.ctrlDown = false;
+        }
+
+        if (event.type == "mousemove") {
+            this.mousePos.set(event.clientX, event.clientY);
+            this.ctrlDown = event.ctrlKey;
+        }
     }
 
-    SpinControlThink() {
+    PanSpinControlThink() {
+        if (this.mouseDown)
+            this.ctrlDown ? this.PanControlThink() : this.SpinControlThink();
+    }
+
+    mDeltaUpdate() {
         this.mouseDelta.subVectors(this.mouseLastPos, this.mousePos);
         this.mouseLastPos = this.mousePos.clone();
+    }
 
-        if (this.mouseDown) {
-            //turntable style camera rotation
+    PanControlThink() {
+        //move pivot on a plane perpendicular to the camera's z-axis
+        var panVec = new THREE.Vector3(this.mouseDelta.x, -this.mouseDelta.y, 0);
+        panVec = this.localToWorld(panVec);
+        panVec.sub(this.position.clone().setFromMatrixPosition(this.matrixWorld));
+        this.pivot.position.add(panVec.multiplyScalar(0.01));
+        // keep visual gizmo at pivot position
+        this.axisHelper.position.copy(this.pivot.position);
+    }
 
-            //rotation on world up
-            var yaxis = new THREE.Vector3(0, 1, 0);
-            yaxis = this.pivot.worldToLocal(yaxis);
-            yaxis.normalize();
+    //turntable-style camera rotation
+    SpinControlThink() {
+        //rotation on world up
+        var yaxis = new THREE.Vector3(0, 1, 0);
+        yaxis.add(this.pivot.position);
+        yaxis = this.pivot.worldToLocal(yaxis);
+        yaxis.normalize();
+        this.pivot.rotateOnAxis(yaxis, this.mouseDelta.x / 100);
 
-            this.pivot.rotateOnAxis(yaxis, this.mouseDelta.x / 100);
+        //rotation on camera's x-axis vector at the pivot's position
+        var xaxis = new THREE.Vector3(1, 0, 0);
+        xaxis = this.localToWorld(xaxis);
+        xaxis.sub(this.position.clone().setFromMatrixPosition(this.matrixWorld));
+        xaxis.add(this.pivot.position);
+        xaxis = this.pivot.worldToLocal(xaxis);
+        xaxis.normalize();
 
-            //rotation on camera's x-axis vector at the pivot's position
-            var xaxis = new THREE.Vector3(-1, 0, 0);
-            xaxis = this.localToWorld(xaxis);
-            xaxis.subVectors(this.position.clone().setFromMatrixPosition(this.matrixWorld), xaxis);
-            xaxis = this.pivot.worldToLocal(xaxis);
-            xaxis.normalize();
-
-            this.pivot.rotateOnAxis(xaxis, this.mouseDelta.y / 100);
-        }
+        this.pivot.rotateOnAxis(xaxis, this.mouseDelta.y / 100);
     }
 }
 
@@ -110,11 +151,7 @@ ZUTIL.SpinningCube = class extends THREE.Mesh {
     }
 
     stop() {
-        for (var i = 0; i < this.scene.update_arr.length; i++){
-            if (this.scene.update_arr[i] == this.callback) {
-                this.scene.update_arr.splice(i, 1);
-            }
-        }
+        this.scene.update_arr.remove(this.callback);
     }
 }
 
@@ -173,21 +210,17 @@ ZUTIL.PBRLoader = class extends THREE.ObjectLoader{
             raw.open("GET", objPathName + "_mats.json", true);
             raw.onreadystatechange = function () {
                 if (raw.readyState == XMLHttpRequest.DONE && raw.status == 200) {
-                    _this.assemble_materials(obj, JSON.parse(raw.responseText));
+                    _this._assemble_materials(obj, JSON.parse(raw.responseText));
                 }
             }
             raw.send(null);
         });
     }
 
-    assemble_materials(object, manifest) {
+    _assemble_materials(object, manifest) {
         var _this = this;
         var materials = [];
         var tLoader = new THREE.TextureLoader();
-
-        //TODO: load reflection cube maps
-        //TODO: pass in the corresponding scene object instead of manifest pathname
-        //TODO: assign object receiveShadow/castShadow properties from here
 
         var lightMapTex = tLoader.load(manifest.lightMap);
 
