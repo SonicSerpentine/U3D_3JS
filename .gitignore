@@ -1,4 +1,5 @@
 #don't include blender local backups
 *.blend1
+/U3D_3JS.VC.db
 work/.autosave/
 .vs/
