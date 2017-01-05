@@ -1,4 +1,5 @@
 ﻿/// <reference path="three.js" />
+/// <reference path="ammo.js" />
 
 class ZUTIL { }
 
@@ -7,10 +8,14 @@ ZUTIL.Scene = class extends THREE.Scene {
         super();
         this.update_arr = [];
         this.update_arr.remove = this._remove_callback;
+        this.clock = new THREE.Clock();
+        this.physicsWorld = new ZUTIL.PhysicsWorld();
     }
 
     update() {
         ///<summary> runs the update callbacks of ZUTIL objects attached to this scene</summary> 
+        var delta = this.clock.getDelta();
+        this.physicsWorld.stepSimulation(delta, 2)
         this.update_arr.forEach(function (e) { e(); });
     }
 
@@ -273,5 +278,111 @@ ZUTIL.PBRLoader = class extends THREE.ObjectLoader{
                 }
             });
         });
+    }
+}
+
+ZUTIL.PhysicsWorld = class extends Ammo.btDiscreteDynamicsWorld{
+    constructor() {
+        var colConfig = new Ammo.btDefaultCollisionConfiguration();
+        var dispatcher = new Ammo.btCollisionDispatcher(colConfig);
+        var overlappingPairCache = new Ammo.btDbvtBroadphase();
+        var solver = new Ammo.btSequentialImpulseConstraintSolver();
+        super(dispatcher, overlappingPairCache, solver, colConfig);
+        this.setGravity(new Ammo.btVector3(0, -100, 0));
+
+        this.actorCallbacks = [];
+    }
+
+    stepSimulation(delta, maxSubSteps) {
+        super.stepSimulation(delta, maxSubSteps);
+        this.actorCallbacks.forEach(function (e) { e(); });
+    }
+}
+//good physics setup example http://media.tojicode.com/q3bsp/physics-test.html
+ZUTIL.PhysCube = class extends THREE.Mesh {
+    constructor(width, height, depth, mass, isKinematic, scene) {
+        ///<param name="scene" type="ZUTIL.Scene">scene the object will be added to</param>
+        var boxGeo = new THREE.BoxGeometry(width,height,depth);
+        var boxMat = new THREE.MeshPhongMaterial({ color: 0x38e04b });
+        super(boxGeo, boxMat);
+        var _this = this;
+        this.scene = scene;
+        this.scene.add(this);
+        this.callback = function () { _this.RendThink() }
+        this.physcallback = function () { _this.PhysThink() }
+        this.scene.update_arr.push(this.callback);
+
+        this.btShape = new Ammo.btBoxShape(new Ammo.btVector3(width/2, height/2, depth/2));
+        this.btTransform = new Ammo.btTransform();
+        this.btTransform.setIdentity();
+        this.btMass = mass;
+        this.btTransform.setOrigin(new Ammo.btVector3(0, 0, 0));
+        this.btLocalInertia = new Ammo.btVector3(0, 0, 0);
+        this.btShape.calculateLocalInertia(this.btMass, this.btLocalInertia);
+        this.btMotionState = new Ammo.btDefaultMotionState(this.btTransform);
+        this.btRigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(this.btMass, this.btMotionState, this.btShape, this.btLocalInertia);
+        this.btBody = new Ammo.btRigidBody(this.btRigidBodyInfo);
+
+        if (isKinematic)
+            this.btBody.setCollisionFlags(this.btBody.getCollisionFlags() | 2);
+
+        this.constraints = [];
+
+        this.scene.physicsWorld.addRigidBody(this.btBody);
+        this.scene.physicsWorld.actorCallbacks.push(this.physcallback);
+        this.btBody.activate();
+    }
+
+    RendThink() {
+        
+    }
+
+    PhysThink() {
+        this.btBody.getMotionState().getWorldTransform(this.btTransform);
+        var btOrigin = this.btTransform.getOrigin();
+        var btRotation = this.btTransform.getRotation();
+
+        this.position.set(btOrigin.x(), btOrigin.y(), btOrigin.z());
+        this.quaternion.set(btRotation.x(), btRotation.y(), btRotation.z(), btRotation.w());
+
+        //if (this.constraints[0] != null)
+          //  console.log(this.constraints[0].getPivotInA().y());
+    }
+
+    setPos(x, y, z) {
+        if (this.btBody.isKinematicObject()) {
+            var trans = this.btBody.getWorldTransform()
+            trans.setOrigin(new Ammo.btVector3(x, y, z));
+            this.btBody.getMotionState().setWorldTransform(trans);
+        }
+        else {
+            var trans = this.btBody.getCenterOfMassTransform();
+            trans.setOrigin(new Ammo.btVector3(x, y, z));
+            this.btBody.setCenterOfMassTransform(trans);
+        }
+    }
+
+    setRot(x, y, z, w) {
+        var trans = this.btBody.getCenterOfMassTransform();
+        var quat = new Ammo.btQuaternion();
+        quat.setEulerZYX(x, y, z);
+        trans.setRotation(quat);
+        this.btBody.setCenterOfMassTransform(trans);
+    }
+
+    setP2PConstraint(x,y,z) {
+        //TODO Physics: .inverse() is not exposed by ammo.js, keep trying to rebuild ammo.js with .inverse() added to the .idl
+        //var localVect = this.btBody.getWorldTransform().getOrigin();
+        //var worldVect = localVect;
+        //worldVect = this.btBody.getCenterOfMassTransform().inverse() * worldVect;
+
+        var vect = new Ammo.btVector3(x, y, z);
+        var con = new Ammo.btPoint2PointConstraint(this.btBody, vect);
+        this.constraints.push(con);
+        this.scene.physicsWorld.addConstraint(con);
+    }
+
+    stop() {
+        this.scene.update_arr.remove(this.callback);
     }
 }
