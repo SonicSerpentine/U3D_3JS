@@ -1,5 +1,4 @@
 #don't include blender local backups
 *.blend1
-
 work/.autosave/
 .vs/
