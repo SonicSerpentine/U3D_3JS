@@ -1,7 +1,7 @@
 ﻿/// <reference path="three.js" />
 /// <reference path="ammo.js" />
 
-class ZUTIL { }
+var ZUTIL = class ZUTIL { };
 
 ZUTIL.Scene = class extends THREE.Scene {
     constructor() {
@@ -194,7 +194,7 @@ ZUTIL.PBRObjectLoader = class extends THREE.ObjectLoader {
     }
 }
 
-ZUTIL.PBRLoader = class extends THREE.ObjectLoader{
+ZUTIL.PBRMultiLoader = class extends THREE.ObjectLoader{
     constructor() {
         ///<summary>creates an object and applies PBR materials according to a matching _mats.json</summary>
         super();

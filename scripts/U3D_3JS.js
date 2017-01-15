@@ -1,12 +1,15 @@
 ﻿/// <reference path="three.js" />
 /// <reference path="ZUTIL.js" />
+/// <reference path="FBXLoader.js" />
+/// <reference path="ColladaLoader.js" />
 
 document.addEventListener("DOMContentLoaded", function () { new App(); }, false);
 
 App = function () {
     var canvas = document.getElementById("threeCanvas");
     var scene = new ZUTIL.Scene();
-    test_scene_setup_01(scene);
+    //test_scene_setup_01(scene);
+    test_scene_setup_02(scene);
 
     var renderer = new THREE.WebGLRenderer({ canvas: canvas });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -28,6 +31,35 @@ App = function () {
         scene.activeCamera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
+}
+
+test_scene_setup_02 = function (scene) {
+    scene.activeCamera = new ZUTIL.Camera(75, window.innerWidth / window.innerHeight, 0.1, 1000, scene);
+
+    scene.activeCamera.position.set(3, 3, 3);
+    scene.activeCamera.lookAt(scene.activeCamera.pivot.position);
+    scene.activeCamera.initPanSpinControl();
+
+    var hemilight = new THREE.HemisphereLight(0xffffff, 0x9b928a, 0.25);
+    hemilight.position.set(0, 2, 0);
+    scene.add(hemilight);
+
+    var light = new THREE.DirectionalLight(0xfffbf2, 0.75);
+    light.castShadow = true;
+    light.shadow.mapSize.width = 2048;
+    light.shadow.mapSize.height = 2048;
+    light.position.set(-30, 30, 30);
+    light.target.position.set(0, 0, 0);
+    scene.add(light);
+    var ldr = new THREE.ColladaLoader();
+    ldr.options.upAxis = 'Y';
+    ldr.options.convertUpAxis = true;
+    ldr.load("./assets/test_scene_01.dae", function (obj) {
+
+        obj.scene.children[0].children[0].material.materials[0] = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+        scene.add(obj.scene);
+    });
 }
 
 test_scene_setup_01 = function (scene) {
@@ -81,8 +113,8 @@ test_scene_setup_01 = function (scene) {
         obj.children[0].receiveShadow = true;
     });
 
-    var pbrMat_arr = new ZUTIL.PBRLoader();
-    pbrMat_arr.load("./assets/test_scene_01", function (obj) {
+    var multiLoad = new ZUTIL.PBRMultiLoader();
+    multiLoad.load("./assets/test_scene_01", function (obj) {
         scene.add(obj);
     });
 }
